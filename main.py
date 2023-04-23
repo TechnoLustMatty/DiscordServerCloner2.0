@@ -71,6 +71,7 @@ async def clone_server():
 @client.event
 async def on_ready():
   clear(True)
+  await client.wait_until_ready()
   await clone_server()
 
 
