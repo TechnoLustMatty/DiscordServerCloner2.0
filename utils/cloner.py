@@ -86,56 +86,107 @@ class Cloner:
     logs(f"Deleted Channels: {channels_deleted}", 'delete', True)
 
   @staticmethod
-  async def categories_create(guild_to: discord.Guild,
-                              guild_from: discord.Guild):
-    channels = guild_from.categories
-    for channel in channels:
-      try:
-        overwrites_to = {
-          discord.utils.get(guild_to.roles, name=key.name): value
-          for key, value in channel.overwrites.items()
-        }
-        new_channel = await guild_to.create_category(name=channel.name,
-                                                     overwrites=overwrites_to)
-        await new_channel.edit(position=channel.position)
-        logs(f"Created Category: {channel.name}", 'add')
-      except discord.Forbidden:
-        logs(f"Error creating category {channel.name}", 'error')
-      except discord.HTTPException:
-        logs(f"Error creating category {channel.name}", 'error')
-    logs(f"Created Categories: {len(channels)}", 'add', True)
+    async def categories_create(guild_to: discord.Guild, guild_from: discord.Guild):
+        channels = guild_from.categories
+        channel: discord.CategoryChannel
+        new_channel: discord.CategoryChannel
+        for channel in channels:
+            try:
+                overwrites_to = {}
+                for key, value in channel.overwrites.items():
+                    role = discord.utils.get(guild_to.roles, name=key.name)
+                    overwrites_to[role] = value
+                new_channel = await guild_to.create_category(
+                    name=channel.name,
+                    overwrites=overwrites_to)
+                await new_channel.edit(position=channel.position)
+                print_add(f"Created Category: {channel.name}")
+            except discord.Forbidden:
+                print_error(f"Error While Deleting Category: {channel.name}")
+            except discord.HTTPException:
+                print_error(f"Unable To Delete Category: {channel.name}")
 
-  @staticmethod
-  async def channels_create(guild_to: discord.Guild,
-                            guild_from: discord.Guild):
-    channels = guild_from.text_channels + guild_from.voice_channels
-    channel_types = {
-      discord.TextChannel: guild_to.create_text_channel,
-      discord.VoiceChannel: guild_to.create_voice_channel
-    }
-    channels_created = len(channels)
-    for channel in channels:
-      await asyncio.sleep(0.2)
-      category = discord.utils.get(guild_to.categories,
-                                   name=getattr(channel.category, "name",
-                                                None))
-      overwrites_to = {}
-      for key, value in channel.overwrites.items():
-        role = discord.utils.get(guild_to.roles, name=key.name)
-        overwrites_to[role] = value
-      try:
-        new_channel = await channel_types[type(channel)
-                                          ](name=channel.name,
-                                            overwrites=overwrites_to,
-                                            position=channel.position)
-        if category is not None:
-          await new_channel.edit(category=category)
-        logs(
-          f"Created {'Text' if type(channel) == discord.TextChannel else 'Voice'} Channel: {channel.name}",
-          'add')
-      except (discord.Forbidden, discord.HTTPException, Exception) as error:
-        logs(f"Error While Creating Channel {channel.name}: {error}", 'error')
-    logs(f"Created Channels: {channels_created}", 'add', True)
+     @staticmethod
+    async def channels_create(guild_to: discord.Guild, guild_from: discord.Guild):
+        channel_text: discord.TextChannel
+        channel_voice: discord.VoiceChannel
+        category = None
+        for channel_text in guild_from.text_channels:
+            try:
+                for category in guild_to.categories:
+                    try:
+                        if category.name == channel_text.category.name:
+                            break
+                    except AttributeError:
+                        print_warning(f"Channel {channel_text.name} doesn't have any category!")
+                        category = None
+                        break
+
+                overwrites_to = {}
+                for key, value in channel_text.overwrites.items():
+                    role = discord.utils.get(guild_to.roles, name=key.name)
+                    overwrites_to[role] = value
+                try:
+                    new_channel = await guild_to.create_text_channel(
+                        name=channel_text.name,
+                        overwrites=overwrites_to,
+                        position=channel_text.position,
+                        topic=channel_text.topic,
+                        slowmode_delay=channel_text.slowmode_delay,
+                        nsfw=channel_text.nsfw)
+                except:
+                    new_channel = await guild_to.create_text_channel(
+                        name=channel_text.name,
+                        overwrites=overwrites_to,
+                        position=channel_text.position)
+                if category is not None:
+                    await new_channel.edit(category=category)
+                print_add(f"Created Text Channel: {channel_text.name}")
+            except discord.Forbidden:
+                print_error(f"Error While Creating Text Channel: {channel_text.name}")
+            except discord.HTTPException:
+                print_error(f"Unable To Creating Text Channel: {channel_text.name}")
+            except:
+                print_error(f"Error While Creating Text Channel: {channel_text.name}")
+
+        category = None
+        for channel_voice in guild_from.voice_channels:
+            try:
+                for category in guild_to.categories:
+                    try:
+                        if category.name == channel_voice.category.name:
+                            break
+                    except AttributeError:
+                        print_warning(f"Channel {channel_voice.name} doesn't have any category!")
+                        category = None
+                        break
+
+                overwrites_to = {}
+                for key, value in channel_voice.overwrites.items():
+                    role = discord.utils.get(guild_to.roles, name=key.name)
+                    overwrites_to[role] = value
+                try:
+                    new_channel = await guild_to.create_voice_channel(
+                        name=channel_voice.name,
+                        overwrites=overwrites_to,
+                        position=channel_voice.position,
+                        bitrate=channel_voice.bitrate,
+                        user_limit=channel_voice.user_limit,
+                        )
+                except:
+                    new_channel = await guild_to.create_voice_channel(
+                        name=channel_voice.name,
+                        overwrites=overwrites_to,
+                        position=channel_voice.position)
+                if category is not None:
+                    await new_channel.edit(category=category)
+                print_add(f"Created Voice Channel: {channel_voice.name}")
+            except discord.Forbidden:
+                print_error(f"Error While Creating Voice Channel: {channel_voice.name}")
+            except discord.HTTPException:
+                print_error(f"Unable To Creating Voice Channel: {channel_voice.name}")
+            except:
+                print_error(f"Error While Creating Voice Channel: {channel_voice.name}")
 
   @staticmethod
   async def emojis_create(guild_to: discord.Guild, guild_from: discord.Guild):
