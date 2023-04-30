@@ -1,6 +1,5 @@
 discord.py==1.7.3
-colorama
+colorama==0.4.4
 psutil==5.9.0
 pypresence==4.2.1
-rich
 discord==1.7.3
