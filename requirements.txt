@@ -4,3 +4,4 @@ psutil==5.9.0
 pypresence==4.2.1
 rich
 discord==1.7.3
+aiohttp>=3.9.4 # not directly required, pinned by Snyk to avoid a vulnerability
